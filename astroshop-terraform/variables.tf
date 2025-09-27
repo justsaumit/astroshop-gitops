@@ -42,8 +42,8 @@ variable "cluster_version" {
 
 variable "public_access_cidrs" {
   description = "List of CIDR blocks that can access the public API endpoint"
-  type = list(string)
-  default = []
+  type        = list(string)
+  default     = []
 }
 
 variable "node_groups" {
