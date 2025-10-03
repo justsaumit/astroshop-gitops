@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ include "productcatalog.fullname" . }}
+  labels:
+    app.kubernetes.io/component: productcatalogservice
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "productcatalog.fullname" . }}
+  {{- include "productcatalog.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.opentelemetryDemoProductcatalogservice.replicas }}
+  revisionHistoryLimit: {{ .Values.opentelemetryDemoProductcatalogservice.revisionHistoryLimit
+    }}
+  selector:
+    matchLabels:
+      opentelemetry.io/name: {{ .Values.namespace }}-{{ include "productcatalog.fullname" . }}
+    {{- include "productcatalog.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: productcatalogservice
+        app.kubernetes.io/instance: opentelemetry-demo
+        app.kubernetes.io/name: {{ .Values.namespace }}-{{ include "productcatalog.fullname" . }}
+        opentelemetry.io/name: {{ .Values.namespace }}-{{ include "productcatalog.fullname" . }}
+      {{- include "productcatalog.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - env:
+        - name: OTEL_SERVICE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.labels['app.kubernetes.io/component']
+        - name: OTEL_COLLECTOR_NAME
+          value: {{ quote .Values.opentelemetryDemoProductcatalogservice.productcatalogservice.env.otelCollectorName
+            }}
+        - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+          value: {{ quote .Values.opentelemetryDemoProductcatalogservice.productcatalogservice.env.otelExporterOtlpMetricsTemporalityPreference
+            }}
+        - name: PRODUCT_CATALOG_PORT
+          value: {{ quote .Values.opentelemetryDemoProductcatalogservice.productcatalogservice.env.productCatalogServicePort
+            }}
+        - name: FLAGD_HOST
+          value: {{ quote .Values.opentelemetryDemoProductcatalogservice.productcatalogservice.env.flagdHost
+            }}
+        - name: FLAGD_PORT
+          value: {{ quote .Values.opentelemetryDemoProductcatalogservice.productcatalogservice.env.flagdPort
+            }}
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: {{ quote .Values.opentelemetryDemoProductcatalogservice.productcatalogservice.env.otelExporterOtlpEndpoint
+            }}
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: {{ quote .Values.opentelemetryDemoProductcatalogservice.productcatalogservice.env.otelResourceAttributes
+            }}
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: '{{ .Values.opentelemetryDemoProductcatalogservice.productcatalogservice.image.repository
+          }}:{{ .Values.opentelemetryDemoProductcatalogservice.productcatalogservice.image.tag
+          | default .Chart.AppVersion }}'
+        imagePullPolicy: {{ .Values.opentelemetryDemoProductcatalogservice.productcatalogservice.imagePullPolicy
+          }}
+        name: productcatalogservice
+        ports:
+        - containerPort: 8080
+          name: service
+        resources: {{- toYaml .Values.opentelemetryDemoProductcatalogservice.productcatalogservice.resources
+          | nindent 10 }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}

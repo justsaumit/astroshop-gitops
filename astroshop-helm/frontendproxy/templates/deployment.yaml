@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ include "frontendproxy.fullname" . }}
+  labels:
+    app.kubernetes.io/component: frontendproxy
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "frontendproxy.fullname" . }}
+  {{- include "frontendproxy.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.opentelemetryDemoFrontendproxy.replicas }}
+  revisionHistoryLimit: {{ .Values.opentelemetryDemoFrontendproxy.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      opentelemetry.io/name: {{ .Values.namespace }}-{{ include "frontendproxy.fullname" . }}
+    {{- include "frontendproxy.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: frontendproxy
+        app.kubernetes.io/instance: opentelemetry-demo
+        app.kubernetes.io/name: {{ .Values.namespace }}-{{ include "frontendproxy.fullname" . }}
+        opentelemetry.io/name: {{ .Values.namespace }}-{{ include "frontendproxy.fullname" . }}
+      {{- include "frontendproxy.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - env:
+        - name: OTEL_SERVICE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.labels['app.kubernetes.io/component']
+        - name: OTEL_COLLECTOR_NAME
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.otelCollectorName }}
+        - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.otelExporterOtlpMetricsTemporalityPreference }}
+        - name: ENVOY_PORT
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.envoyPort }}
+        - name: ENVOY_ADMIN_PORT
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.envoyAdminPort }}
+        - name: FLAGD_HOST
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.flagdHost }}
+        - name: FLAGD_PORT
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.flagdPort }}
+        - name: FLAGD_UI_HOST
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.flagdUiHost }}
+        - name: FLAGD_UI_PORT
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.flagdUiPort }}
+        - name: FRONTEND_HOST
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.frontendHost }}
+        - name: FRONTEND_PORT
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.frontendPort }}
+        - name: GRAFANA_HOST
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.grafanaServiceHost }}
+        - name: GRAFANA_PORT
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.grafanaServicePort }}
+        - name: IMAGE_PROVIDER_HOST
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.imageProviderHost }}
+        - name: IMAGE_PROVIDER_PORT
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.imageProviderPort }}
+        - name: JAEGER_HOST
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.jaegerServiceHost }}
+        - name: JAEGER_UI_PORT
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.jaegerServicePort }}
+        - name: LOCUST_WEB_HOST
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.locustWebHost }}
+        - name: LOCUST_WEB_PORT
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.locustWebPort }}
+        - name: OTEL_COLLECTOR_HOST
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.otelCollectorHost }}
+        - name: OTEL_COLLECTOR_PORT_GRPC
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.otelCollectorPortGrpc }}
+        - name: OTEL_COLLECTOR_PORT_HTTP
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.otelCollectorPortHttp }}
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: {{ quote .Values.opentelemetryDemoFrontendproxy.frontendproxy.env.otelResourceAttributes }}
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: '{{ .Values.opentelemetryDemoFrontendproxy.frontendproxy.image.repository }}:{{ .Values.opentelemetryDemoFrontendproxy.frontendproxy.image.tag | default .Chart.AppVersion }}'
+        imagePullPolicy: {{ .Values.opentelemetryDemoFrontendproxy.frontendproxy.imagePullPolicy }}
+        name: frontendproxy
+        ports:
+        - containerPort: 8080
+          name: service
+        resources: {{- toYaml .Values.opentelemetryDemoFrontendproxy.frontendproxy.resources | nindent 10 }}
+        securityContext: {{- toYaml .Values.opentelemetryDemoFrontendproxy.frontendproxy.containerSecurityContext | nindent 10 }}
+        command: ["/usr/local/bin/envoy"]
+        args: ["-c", "/etc/envoy/envoy.yaml", "--service-cluster", "frontendproxy"]
+        volumeMounts:
+        - name: envoy-config
+          mountPath: /etc/envoy
+      volumes:
+      - name: envoy-config
+        configMap:
+          name: {{ include "frontendproxy.fullname" . }}-config
+      serviceAccountName: {{ .Values.serviceAccount.name }}

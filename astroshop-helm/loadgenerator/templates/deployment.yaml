@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ include "loadgenerator.fullname" . }}
+  labels:
+    app.kubernetes.io/component: loadgenerator
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "loadgenerator.fullname" . }}
+  {{- include "loadgenerator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.opentelemetryDemoLoadgenerator.replicas }}
+  revisionHistoryLimit: {{ .Values.opentelemetryDemoLoadgenerator.revisionHistoryLimit
+    }}
+  selector:
+    matchLabels:
+      opentelemetry.io/name: {{ .Values.namespace }}-{{ include "loadgenerator.fullname" . }}
+    {{- include "loadgenerator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: loadgenerator
+        app.kubernetes.io/instance: opentelemetry-demo
+        app.kubernetes.io/name: {{ .Values.namespace }}-{{ include "loadgenerator.fullname" . }}
+        opentelemetry.io/name: {{ .Values.namespace }}-{{ include "loadgenerator.fullname" . }}
+      {{- include "loadgenerator.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - env:
+        - name: OTEL_SERVICE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.labels['app.kubernetes.io/component']
+        - name: OTEL_COLLECTOR_NAME
+          value: {{ quote .Values.opentelemetryDemoLoadgenerator.loadgenerator.env.otelCollectorName
+            }}
+        - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+          value: {{ quote .Values.opentelemetryDemoLoadgenerator.loadgenerator.env.otelExporterOtlpMetricsTemporalityPreference
+            }}
+        - name: LOCUST_WEB_PORT
+          value: {{ quote .Values.opentelemetryDemoLoadgenerator.loadgenerator.env.locustWebPort
+            }}
+        - name: LOCUST_USERS
+          value: {{ quote .Values.opentelemetryDemoLoadgenerator.loadgenerator.env.locustUsers
+            }}
+        - name: LOCUST_SPAWN_RATE
+          value: {{ quote .Values.opentelemetryDemoLoadgenerator.loadgenerator.env.locustSpawnRate
+            }}
+        - name: LOCUST_HOST
+          value: {{ quote .Values.opentelemetryDemoLoadgenerator.loadgenerator.env.locustHost
+            }}
+        - name: LOCUST_HEADLESS
+          value: {{ quote .Values.opentelemetryDemoLoadgenerator.loadgenerator.env.locustHeadless
+            }}
+        - name: LOCUST_AUTOSTART
+          value: {{ quote .Values.opentelemetryDemoLoadgenerator.loadgenerator.env.locustAutostart
+            }}
+        - name: LOCUST_BROWSER_TRAFFIC_ENABLED
+          value: {{ quote .Values.opentelemetryDemoLoadgenerator.loadgenerator.env.locustBrowserTrafficEnabled
+            }}
+        - name: PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION
+          value: {{ quote .Values.opentelemetryDemoLoadgenerator.loadgenerator.env.protocolBuffersPythonImplementation
+            }}
+        - name: FLAGD_HOST
+          value: {{ quote .Values.opentelemetryDemoLoadgenerator.loadgenerator.env.flagdHost
+            }}
+        - name: FLAGD_PORT
+          value: {{ quote .Values.opentelemetryDemoLoadgenerator.loadgenerator.env.flagdPort
+            }}
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: {{ quote .Values.opentelemetryDemoLoadgenerator.loadgenerator.env.otelExporterOtlpEndpoint
+            }}
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: {{ quote .Values.opentelemetryDemoLoadgenerator.loadgenerator.env.otelResourceAttributes
+            }}
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: '{{ .Values.opentelemetryDemoLoadgenerator.loadgenerator.image.repository
+          }}:{{ .Values.opentelemetryDemoLoadgenerator.loadgenerator.image.tag | default
+          .Chart.AppVersion }}'
+        imagePullPolicy: {{ .Values.opentelemetryDemoLoadgenerator.loadgenerator.imagePullPolicy
+          }}
+        name: loadgenerator
+        ports:
+        - containerPort: 8089
+          name: service
+        resources: {{- toYaml .Values.opentelemetryDemoLoadgenerator.loadgenerator.resources
+          | nindent 10 }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}

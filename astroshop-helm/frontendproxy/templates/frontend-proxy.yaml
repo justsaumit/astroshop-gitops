@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.namespace }}-{{ include "frontendproxy.fullname" . }}
+  labels:
+    app.kubernetes.io/component: frontendproxy
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "frontendproxy.fullname" . }}
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  ingressClassName: alb
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: '{{ include "frontendproxy.fullname" . }}'
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix

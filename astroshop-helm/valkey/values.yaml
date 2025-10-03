@@ -1,0 +1,32 @@
+namespace: opentelemetry-demo
+kubernetesClusterDomain: cluster.local
+
+serviceAccount:
+  name: opentelemetry-demo
+  version: ">=1.32.0-0"
+  partOf: opentelemetry-demo
+
+opentelemetryDemoValkey:
+  ports:
+  - name: valkey
+    port: 6379
+    targetPort: 6379
+  replicas: 1
+  revisionHistoryLimit: 10
+  type: ClusterIP
+  valkey:
+    containerSecurityContext:
+      runAsGroup: 1000
+      runAsNonRoot: true
+      runAsUser: 999
+    env:
+      otelCollectorName: opentelemetry-demo-otelcol
+      otelExporterOtlpMetricsTemporalityPreference: cumulative
+      otelResourceAttributes: service.name=$(OTEL_SERVICE_NAME),service.namespace=opentelemetry-demo,service.version=2.1.3
+    image:
+      repository: valkey/valkey
+      tag: 7.2-alpine
+    imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        memory: 20Mi

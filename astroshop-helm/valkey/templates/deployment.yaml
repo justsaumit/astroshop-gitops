@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ include "valkey.fullname" . }}
+  labels:
+    app.kubernetes.io/component: valkey
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "valkey.fullname" . }}
+  {{- include "valkey.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.opentelemetryDemoValkey.replicas }}
+  revisionHistoryLimit: {{ .Values.opentelemetryDemoValkey.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      opentelemetry.io/name: {{ .Values.namespace }}-{{ include "valkey.fullname" . }}
+    {{- include "valkey.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: valkey
+        app.kubernetes.io/instance: opentelemetry-demo
+        app.kubernetes.io/name: {{ .Values.namespace }}-{{ include "valkey.fullname" . }}
+        opentelemetry.io/name: {{ .Values.namespace }}-{{ include "valkey.fullname" . }}
+      {{- include "valkey.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - env:
+        - name: OTEL_SERVICE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.labels['app.kubernetes.io/component']
+        - name: OTEL_COLLECTOR_NAME
+          value: {{ quote .Values.opentelemetryDemoValkey.valkey.env.otelCollectorName
+            }}
+        - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+          value: {{ quote .Values.opentelemetryDemoValkey.valkey.env.otelExporterOtlpMetricsTemporalityPreference
+            }}
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: {{ quote .Values.opentelemetryDemoValkey.valkey.env.otelResourceAttributes
+            }}
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: {{ .Values.opentelemetryDemoValkey.valkey.image.repository }}:{{ .Values.opentelemetryDemoValkey.valkey.image.tag
+          | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.opentelemetryDemoValkey.valkey.imagePullPolicy }}
+        name: valkey
+        ports:
+        - containerPort: 6379
+          name: valkey
+        resources: {{- toYaml .Values.opentelemetryDemoValkey.valkey.resources | nindent
+          10 }}
+        securityContext: {{- toYaml .Values.opentelemetryDemoValkey.valkey.containerSecurityContext
+          | nindent 10 }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}

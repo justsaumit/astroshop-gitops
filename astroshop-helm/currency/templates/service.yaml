@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.namespace }}-{{ include "currency.fullname" . }}
+  labels:
+    app.kubernetes.io/component: currencyservice
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "currency.fullname" . }}
+  {{- include "currency.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.opentelemetryDemoCurrencyservice.type }}
+  selector:
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "currency.fullname" . }}
+    {{- include "currency.selectorLabels" . | nindent 4 }}
+  ports:
+  {{- .Values.opentelemetryDemoCurrencyservice.ports | toYaml | nindent 2 }}

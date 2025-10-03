@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.namespace }}-{{ include "email.fullname" . }}
+  labels:
+    app.kubernetes.io/component: emailservice
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "email.fullname" . }}
+  {{- include "email.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.opentelemetryDemoEmailservice.type }}
+  selector:
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "email.fullname" . }}
+    {{- include "email.selectorLabels" . | nindent 4 }}
+  ports:
+  {{- .Values.opentelemetryDemoEmailservice.ports | toYaml | nindent 2 }}

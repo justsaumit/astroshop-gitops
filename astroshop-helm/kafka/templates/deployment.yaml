@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ include "kafka.fullname" . }}
+  labels:
+    app.kubernetes.io/component: kafka
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "kafka.fullname" . }}
+  {{- include "kafka.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.opentelemetryDemoKafka.replicas }}
+  revisionHistoryLimit: {{ .Values.opentelemetryDemoKafka.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      opentelemetry.io/name: {{ .Values.namespace }}-{{ include "kafka.fullname" . }}
+    {{- include "kafka.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: kafka
+        app.kubernetes.io/instance: opentelemetry-demo
+        app.kubernetes.io/name: {{ .Values.namespace }}-{{ include "kafka.fullname" . }}
+        opentelemetry.io/name: {{ .Values.namespace }}-{{ include "kafka.fullname" . }}
+      {{- include "kafka.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - env:
+        - name: OTEL_SERVICE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.labels['app.kubernetes.io/component']
+        - name: OTEL_COLLECTOR_NAME
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.otelCollectorName }}
+        - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.otelExporterOtlpMetricsTemporalityPreference }}
+        - name: KAFKA_ADVERTISED_LISTENERS
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.kafkaAdvertisedListeners }}
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.otelExporterOtlpEndpoint }}
+        - name: KAFKA_HEAP_OPTS
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.kafkaHeapOpts }}
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.otelResourceAttributes }}
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+
+        # KRaft mode environment variables
+        - name: KAFKA_PROCESS_ROLES
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.processRoles }}
+        - name: KAFKA_NODE_ID
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.nodeId }}
+        - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.controllerQuorumVoters }}
+        - name: KAFKA_CONTROLLER_LISTENER_NAMES
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.controllerListenerNames }}
+        - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.listenerSecurityProtocolMap }}
+        - name: KAFKA_LISTENERS
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.listeners }}
+        - name: KAFKA_INTER_BROKER_LISTENER_NAME
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.interBrokerListenerName }}
+        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.offsetsTopicReplicationFactor }}
+        - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.transactionStateLogReplicationFactor }}
+        - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.transactionStateLogMinIsr }}
+        - name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.groupInitialRebalanceDelayMs }}
+        - name: KAFKA_LOG_DIRS
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.logDirs }}
+        - name: CLUSTER_ID
+          value: {{ quote .Values.opentelemetryDemoKafka.kafka.env.clusterId }}
+
+        image: {{ .Values.opentelemetryDemoKafka.kafka.image.repository }}:{{ .Values.opentelemetryDemoKafka.kafka.image.tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.opentelemetryDemoKafka.kafka.imagePullPolicy }}
+        name: kafka
+        ports:
+        - containerPort: 9092
+          name: plaintext
+        - containerPort: 9093
+          name: controller
+        resources: {{- toYaml .Values.opentelemetryDemoKafka.kafka.resources | nindent 10 }}
+        securityContext: {{- toYaml .Values.opentelemetryDemoKafka.kafka.containerSecurityContext | nindent 10 }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}

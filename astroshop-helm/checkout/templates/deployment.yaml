@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ include "checkout.fullname" . }}
+  labels:
+    app.kubernetes.io/component: checkoutservice
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "checkout.fullname" . }}
+  {{- include "checkout.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.opentelemetryDemoCheckoutservice.replicas }}
+  revisionHistoryLimit: {{ .Values.opentelemetryDemoCheckoutservice.revisionHistoryLimit
+    }}
+  selector:
+    matchLabels:
+      opentelemetry.io/name: {{ .Values.namespace }}-{{ include "checkout.fullname" . }}
+    {{- include "checkout.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: checkoutservice
+        app.kubernetes.io/instance: opentelemetry-demo
+        app.kubernetes.io/name: {{ .Values.namespace }}-{{ include "checkout.fullname" . }}
+        opentelemetry.io/name: {{ .Values.namespace }}-{{ include "checkout.fullname" . }}
+      {{- include "checkout.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - env:
+        - name: OTEL_SERVICE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.labels['app.kubernetes.io/component']
+        - name: OTEL_COLLECTOR_NAME
+          value: {{ quote .Values.opentelemetryDemoCheckoutservice.checkoutservice.env.otelCollectorName
+            }}
+        - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+          value: {{ quote .Values.opentelemetryDemoCheckoutservice.checkoutservice.env.otelExporterOtlpMetricsTemporalityPreference
+            }}
+        - name: CHECKOUT_PORT
+          value: {{ quote .Values.opentelemetryDemoCheckoutservice.checkoutservice.env.checkoutServicePort
+            }}
+        - name: CART_ADDR
+          value: {{ quote .Values.opentelemetryDemoCheckoutservice.checkoutservice.env.cartServiceAddr
+            }}
+        - name: CURRENCY_ADDR
+          value: {{ quote .Values.opentelemetryDemoCheckoutservice.checkoutservice.env.currencyServiceAddr
+            }}
+        - name: EMAIL_ADDR
+          value: {{ quote .Values.opentelemetryDemoCheckoutservice.checkoutservice.env.emailServiceAddr
+            }}
+        - name: PAYMENT_ADDR
+          value: {{ quote .Values.opentelemetryDemoCheckoutservice.checkoutservice.env.paymentServiceAddr
+            }}
+        - name: PRODUCT_CATALOG_ADDR
+          value: {{ quote .Values.opentelemetryDemoCheckoutservice.checkoutservice.env.productCatalogServiceAddr
+            }}
+        - name: SHIPPING_ADDR
+          value: {{ quote .Values.opentelemetryDemoCheckoutservice.checkoutservice.env.shippingServiceAddr
+            }}
+        - name: KAFKA_ADDR
+          value: {{ quote .Values.opentelemetryDemoCheckoutservice.checkoutservice.env.kafkaServiceAddr
+            }}
+        - name: FLAGD_HOST
+          value: {{ quote .Values.opentelemetryDemoCheckoutservice.checkoutservice.env.flagdHost
+            }}
+        - name: FLAGD_PORT
+          value: {{ quote .Values.opentelemetryDemoCheckoutservice.checkoutservice.env.flagdPort
+            }}
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: {{ quote .Values.opentelemetryDemoCheckoutservice.checkoutservice.env.otelExporterOtlpEndpoint
+            }}
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: {{ quote .Values.opentelemetryDemoCheckoutservice.checkoutservice.env.otelResourceAttributes
+            }}
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: '{{ .Values.opentelemetryDemoCheckoutservice.checkoutservice.image.repository
+          }}:{{ .Values.opentelemetryDemoCheckoutservice.checkoutservice.image.tag | default
+          .Chart.AppVersion }}'
+        imagePullPolicy: {{ .Values.opentelemetryDemoCheckoutservice.checkoutservice.imagePullPolicy
+          }}
+        name: checkoutservice
+        ports:
+        - containerPort: 8080
+          name: service
+        resources: {{- toYaml .Values.opentelemetryDemoCheckoutservice.checkoutservice.resources
+          | nindent 10 }}
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - until nc -z -v -w30 opentelemetry-demo-kafka 9092; do echo waiting for kafka;
+          sleep 2; done;
+        env:
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: '{{ .Values.opentelemetryDemoCheckoutservice.waitForKafka.image.repository
+          }}:{{ .Values.opentelemetryDemoCheckoutservice.waitForKafka.image.tag | default
+          .Chart.AppVersion }}'
+        name: wait-for-kafka
+        resources: {}
+      serviceAccountName: {{ .Values.serviceAccount.name }}

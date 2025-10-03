@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.namespace }}-{{ include "loadgenerator.fullname" . }}
+  labels:
+    app.kubernetes.io/component: loadgenerator
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "loadgenerator.fullname" . }}
+  {{- include "loadgenerator.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.opentelemetryDemoLoadgenerator.type }}
+  selector:
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "loadgenerator.fullname" . }}
+    {{- include "loadgenerator.selectorLabels" . | nindent 4 }}
+  ports:
+  {{- .Values.opentelemetryDemoLoadgenerator.ports | toYaml | nindent 2 }}

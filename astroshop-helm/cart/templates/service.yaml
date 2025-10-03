@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.namespace }}-{{ include "cart.fullname" . }}
+  labels:
+    app.kubernetes.io/component: cartservice
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "cart.fullname" . }}
+  {{- include "cart.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.opentelemetryDemoCartservice.type }}
+  selector:
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "cart.fullname" . }}
+    {{- include "cart.selectorLabels" . | nindent 4 }}
+  ports:
+  {{- .Values.opentelemetryDemoCartservice.ports | toYaml | nindent 2 }}

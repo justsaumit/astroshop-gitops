@@ -1,0 +1,53 @@
+namespace: opentelemetry-demo
+kubernetesClusterDomain: cluster.local
+
+serviceAccount:
+  name: opentelemetry-demo
+  version: ">=1.32.0-0"
+  partOf: opentelemetry-demo
+
+opentelemetryDemoKafka:
+  kafka:
+    containerSecurityContext:
+      runAsGroup: 1000
+      runAsNonRoot: true
+      runAsUser: 1000
+    env:
+      kafkaAdvertisedListeners: PLAINTEXT://opentelemetry-demo-kafka:9092
+      kafkaHeapOpts: -Xmx400M -Xms400M
+      otelCollectorName: opentelemetry-demo-otelcol
+      otelExporterOtlpEndpoint: http://$(OTEL_COLLECTOR_NAME):4318
+      otelExporterOtlpMetricsTemporalityPreference: cumulative
+      otelResourceAttributes: service.name=$(OTEL_SERVICE_NAME),service.namespace=opentelemetry-demo,service.version=2.1.3
+
+      # KRaft mode configurations
+      processRoles: broker,controller
+      nodeId: 1
+      controllerQuorumVoters: 1@opentelemetry-demo-kafka:9093
+      controllerListenerNames: CONTROLLER
+      listenerSecurityProtocolMap: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      listeners: PLAINTEXT://:9092,CONTROLLER://:9093
+      interBrokerListenerName: PLAINTEXT
+      offsetsTopicReplicationFactor: 1
+      transactionStateLogReplicationFactor: 1
+      transactionStateLogMinIsr: 1
+      groupInitialRebalanceDelayMs: 0
+      logDirs: /var/lib/kafka/data
+      clusterId: ckjPoprWQzOf0-FuNkGfFQ
+    image:
+      repository: ghcr.io/open-telemetry/demo
+      tag: 2.1.3-kafka
+    imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        memory: 600Mi
+  ports:
+  - name: plaintext
+    port: 9092
+    targetPort: 9092
+  - name: controller
+    port: 9093
+    targetPort: 9093
+  replicas: 1
+  revisionHistoryLimit: 10
+  type: ClusterIP

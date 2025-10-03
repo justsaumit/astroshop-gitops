@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ include "quote.fullname" . }}
+  labels:
+    app.kubernetes.io/component: quoteservice
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "quote.fullname" . }}
+  {{- include "quote.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.opentelemetryDemoQuoteservice.replicas }}
+  revisionHistoryLimit: {{ .Values.opentelemetryDemoQuoteservice.revisionHistoryLimit
+    }}
+  selector:
+    matchLabels:
+      opentelemetry.io/name: {{ .Values.namespace }}-{{ include "quote.fullname" . }}
+    {{- include "quote.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: quoteservice
+        app.kubernetes.io/instance: opentelemetry-demo
+        app.kubernetes.io/name: {{ .Values.namespace }}-{{ include "quote.fullname" . }}
+        opentelemetry.io/name: {{ .Values.namespace }}-{{ include "quote.fullname" . }}
+      {{- include "quote.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - env:
+        - name: OTEL_SERVICE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.labels['app.kubernetes.io/component']
+        - name: OTEL_COLLECTOR_NAME
+          value: {{ quote .Values.opentelemetryDemoQuoteservice.quoteservice.env.otelCollectorName
+            }}
+        - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+          value: {{ quote .Values.opentelemetryDemoQuoteservice.quoteservice.env.otelExporterOtlpMetricsTemporalityPreference
+            }}
+        - name: QUOTE_PORT
+          value: {{ quote .Values.opentelemetryDemoQuoteservice.quoteservice.env.quoteServicePort
+            }}
+        - name: OTEL_PHP_AUTOLOAD_ENABLED
+          value: {{ quote .Values.opentelemetryDemoQuoteservice.quoteservice.env.otelPhpAutoloadEnabled
+            }}
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: {{ quote .Values.opentelemetryDemoQuoteservice.quoteservice.env.otelExporterOtlpEndpoint
+            }}
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: {{ quote .Values.opentelemetryDemoQuoteservice.quoteservice.env.otelResourceAttributes
+            }}
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: '{{ .Values.opentelemetryDemoQuoteservice.quoteservice.image.repository }}:{{
+          .Values.opentelemetryDemoQuoteservice.quoteservice.image.tag | default .Chart.AppVersion
+          }}'
+        imagePullPolicy: {{ .Values.opentelemetryDemoQuoteservice.quoteservice.imagePullPolicy
+          }}
+        name: quoteservice
+        ports:
+        - containerPort: 8080
+          name: service
+        resources: {{- toYaml .Values.opentelemetryDemoQuoteservice.quoteservice.resources
+          | nindent 10 }}
+        securityContext: {{- toYaml .Values.opentelemetryDemoQuoteservice.quoteservice.containerSecurityContext
+          | nindent 10 }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}

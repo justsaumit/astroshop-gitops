@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.namespace }}-{{ include "frontend.fullname" . }}
+  labels:
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "frontend.fullname" . }}
+  {{- include "frontend.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.opentelemetryDemoFrontend.type }}
+  selector:
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "frontend.fullname" . }}
+    {{- include "frontend.selectorLabels" . | nindent 4 }}
+  ports:
+  {{- .Values.opentelemetryDemoFrontend.ports | toYaml | nindent 2 }}

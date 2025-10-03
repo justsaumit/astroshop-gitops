@@ -1,0 +1,10 @@
+namespace: opentelemetry-demo
+
+serviceAccount:
+  name: opentelemetry-demo
+  labels:
+    opentelemetryIoName: opentelemetry-demo
+    appKubernetesIoInstance: opentelemetry-demo
+    appKubernetesIoName: opentelemetry-demo
+    appKubernetesIoVersion: "2.1.3"
+    appKubernetesIoPartOf: opentelemetry-demo

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.namespace }}-{{ include "ad.fullname" . }}
+  labels:
+    app.kubernetes.io/component: adservice
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "ad.fullname" . }}
+  {{- include "ad.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.opentelemetryDemoAdservice.type }}
+  selector:
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "ad.fullname" . }}
+    {{- include "ad.selectorLabels" . | nindent 4 }}
+  ports:
+  {{- .Values.opentelemetryDemoAdservice.ports | toYaml | nindent 2 }}

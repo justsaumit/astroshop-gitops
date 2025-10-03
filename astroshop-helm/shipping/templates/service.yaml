@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.namespace }}-{{ include "shipping.fullname" . }}
+  labels:
+    app.kubernetes.io/component: shippingservice
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "shipping.fullname" . }}
+  {{- include "shipping.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.opentelemetryDemoShippingservice.type }}
+  selector:
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "shipping.fullname" . }}
+    {{- include "shipping.selectorLabels" . | nindent 4 }}
+  ports:
+  {{- .Values.opentelemetryDemoShippingservice.ports | toYaml | nindent 2 }}

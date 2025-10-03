@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ include "accounting.fullname" . }}
+  labels:
+    app.kubernetes.io/component: accountingservice
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "accounting.fullname" . }}
+  {{- include "accounting.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.opentelemetryDemoAccountingservice.replicas }}
+  revisionHistoryLimit: {{ .Values.opentelemetryDemoAccountingservice.revisionHistoryLimit
+    }}
+  selector:
+    matchLabels:
+      opentelemetry.io/name: {{ .Values.namespace }}-{{ include "accounting.fullname" . }}
+    {{- include "accounting.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: accountingservice
+        app.kubernetes.io/instance: opentelemetry-demo
+        app.kubernetes.io/name: {{ .Values.namespace }}-{{ include "accounting.fullname" . }}
+        opentelemetry.io/name: {{ .Values.namespace }}-{{ include "accounting.fullname" . }}
+      {{- include "accounting.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - env:
+        - name: OTEL_SERVICE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.labels['app.kubernetes.io/component']
+        - name: OTEL_COLLECTOR_NAME
+          value: {{ quote .Values.opentelemetryDemoAccountingservice.accountingservice.env.otelCollectorName
+            }}
+        - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+          value: {{ quote .Values.opentelemetryDemoAccountingservice.accountingservice.env.otelExporterOtlpMetricsTemporalityPreference
+            }}
+        - name: KAFKA_ADDR
+          value: {{ quote .Values.opentelemetryDemoAccountingservice.accountingservice.env.kafkaServiceAddr
+            }}
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: {{ quote .Values.opentelemetryDemoAccountingservice.accountingservice.env.otelExporterOtlpEndpoint
+            }}
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: {{ quote .Values.opentelemetryDemoAccountingservice.accountingservice.env.otelResourceAttributes
+            }}
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: '{{ .Values.opentelemetryDemoAccountingservice.accountingservice.image.repository
+          }}:{{ .Values.opentelemetryDemoAccountingservice.accountingservice.image.tag |
+          default .Chart.AppVersion }}'
+        imagePullPolicy: {{ .Values.opentelemetryDemoAccountingservice.accountingservice.imagePullPolicy
+          }}
+        name: accountingservice
+        resources: {{- toYaml .Values.opentelemetryDemoAccountingservice.accountingservice.resources
+          | nindent 10 }}
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - until nc -z -v -w30 opentelemetry-demo-kafka 9092; do echo waiting for kafka;
+          sleep 2; done;
+        env:
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: '{{ .Values.opentelemetryDemoAccountingservice.waitForKafka.image.repository
+          }}:{{ .Values.opentelemetryDemoAccountingservice.waitForKafka.image.tag | default
+          .Chart.AppVersion }}'
+        name: wait-for-kafka
+        resources: {}
+      serviceAccountName: {{ .Values.serviceAccount.name }}

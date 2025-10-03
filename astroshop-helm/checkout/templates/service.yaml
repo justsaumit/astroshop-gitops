@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.namespace }}-{{ include "checkout.fullname" . }}
+  labels:
+    app.kubernetes.io/component: checkoutservice
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: opentelemetry-demo-checkoutservice
+  {{- include "checkout.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.opentelemetryDemoCheckoutservice.type }}
+  selector:
+    opentelemetry.io/name: opentelemetry-demo-checkoutservice
+    {{- include "checkout.selectorLabels" . | nindent 4 }}
+  ports:
+  {{- .Values.opentelemetryDemoCheckoutservice.ports | toYaml | nindent 2 }}

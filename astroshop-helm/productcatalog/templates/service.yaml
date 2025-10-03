@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.namespace }}-{{ include "productcatalog.fullname" . }}
+  labels:
+    app.kubernetes.io/component: productcatalogservice
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "productcatalog.fullname" . }}
+  {{- include "productcatalog.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.opentelemetryDemoProductcatalogservice.type }}
+  selector:
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "productcatalog.fullname" . }}
+    {{- include "productcatalog.selectorLabels" . | nindent 4 }}
+  ports:
+  {{- .Values.opentelemetryDemoProductcatalogservice.ports | toYaml | nindent 2 }}

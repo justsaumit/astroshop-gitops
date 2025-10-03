@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.namespace }}-{{ include "valkey.fullname" . }}
+  labels:
+    app.kubernetes.io/component: valkey
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "valkey.fullname" . }}
+  {{- include "valkey.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.opentelemetryDemoValkey.type }}
+  selector:
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "valkey.fullname" . }}
+    {{- include "valkey.selectorLabels" . | nindent 4 }}
+  ports:
+  {{- .Values.opentelemetryDemoValkey.ports | toYaml | nindent 2 }}

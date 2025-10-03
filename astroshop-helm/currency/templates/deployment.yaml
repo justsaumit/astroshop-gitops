@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: {{ include "currency.fullname" . }}
+  labels:
+    app.kubernetes.io/component: currencyservice
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "currency.fullname" . }}
+  {{- include "currency.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.opentelemetryDemoCurrencyservice.replicas }}
+  revisionHistoryLimit: {{ .Values.opentelemetryDemoCurrencyservice.revisionHistoryLimit
+    }}
+  selector:
+    matchLabels:
+      opentelemetry.io/name: {{ .Values.namespace }}-{{ include "currency.fullname" . }}
+    {{- include "currency.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: currencyservice
+        app.kubernetes.io/instance: opentelemetry-demo
+        app.kubernetes.io/name: {{ .Values.namespace }}-{{ include "currency.fullname" . }}
+        opentelemetry.io/name: {{ .Values.namespace }}-{{ include "currency.fullname" . }}
+      {{- include "currency.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - env:
+        - name: OTEL_SERVICE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.labels['app.kubernetes.io/component']
+        - name: OTEL_COLLECTOR_NAME
+          value: {{ quote .Values.opentelemetryDemoCurrencyservice.currencyservice.env.otelCollectorName
+            }}
+        - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+          value: {{ quote .Values.opentelemetryDemoCurrencyservice.currencyservice.env.otelExporterOtlpMetricsTemporalityPreference
+            }}
+        - name: CURRENCY_PORT
+          value: {{ quote .Values.opentelemetryDemoCurrencyservice.currencyservice.env.currencyServicePort
+            }}
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: {{ quote .Values.opentelemetryDemoCurrencyservice.currencyservice.env.otelExporterOtlpEndpoint
+            }}
+        - name: VERSION
+          value: {{ quote .Values.opentelemetryDemoCurrencyservice.currencyservice.env.version
+            }}
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: {{ quote .Values.opentelemetryDemoCurrencyservice.currencyservice.env.otelResourceAttributes
+            }}
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: '{{ .Values.opentelemetryDemoCurrencyservice.currencyservice.image.repository
+          }}:{{ .Values.opentelemetryDemoCurrencyservice.currencyservice.image.tag | default
+          .Chart.AppVersion }}'
+        imagePullPolicy: {{ .Values.opentelemetryDemoCurrencyservice.currencyservice.imagePullPolicy
+          }}
+        name: currencyservice
+        ports:
+        - containerPort: 8080
+          name: service
+        resources: {{- toYaml .Values.opentelemetryDemoCurrencyservice.currencyservice.resources
+          | nindent 10 }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}

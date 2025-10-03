@@ -1,0 +1,51 @@
+namespace: opentelemetry-demo
+kubernetesClusterDomain: cluster.local
+
+serviceAccount:
+  name: opentelemetry-demo
+  version: ">=1.32.0-0"
+  partOf: opentelemetry-demo
+
+opentelemetryDemoFrontendproxy:
+  frontendproxy:
+    containerSecurityContext:
+      runAsGroup: 101
+      runAsNonRoot: true
+      runAsUser: 101
+    env:
+      envoyPort: "8080"
+      envoyAdminPort: "10000"
+      flagdHost: opentelemetry-demo-flagd
+      flagdPort: "8013"
+      flagdUiHost: opentelemetry-demo-flagd
+      flagdUiPort: "4000"
+      frontendHost: opentelemetry-demo-frontend
+      frontendPort: "8080"
+      grafanaServiceHost: opentelemetry-demo-grafana
+      grafanaServicePort: "80"
+      imageProviderHost: opentelemetry-demo-imageprovider
+      imageProviderPort: "8081"
+      jaegerServiceHost: opentelemetry-demo-jaeger-query
+      jaegerServicePort: "16686"
+      locustWebHost: opentelemetry-demo-loadgenerator
+      locustWebPort: "8089"
+      otelCollectorHost: $(OTEL_COLLECTOR_NAME)
+      otelCollectorName: opentelemetry-demo-otelcol
+      otelCollectorPortGrpc: "4317"
+      otelCollectorPortHttp: "4318"
+      otelExporterOtlpMetricsTemporalityPreference: cumulative
+      otelResourceAttributes: service.name=$(OTEL_SERVICE_NAME),service.namespace=opentelemetry-demo,service.version=2.1.3
+    image:
+      repository: ghcr.io/open-telemetry/demo
+      tag: 2.1.3-frontend-proxy
+    imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        memory: 50Mi
+  replicas: 1
+  revisionHistoryLimit: 10
+  ports:
+  - name: tcp-service
+    port: 8080
+    targetPort: 8080
+  type: LoadBalancer

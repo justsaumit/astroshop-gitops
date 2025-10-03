@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "flagd.fullname" . }}-config
+  labels:
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: opentelemetry-demo
+  {{- include "flagd.labels" . | nindent 4 }}
+data:
+  demo.flagd.json: {{ .Values.config.demoFlagdJson | toYaml | indent 1 }}

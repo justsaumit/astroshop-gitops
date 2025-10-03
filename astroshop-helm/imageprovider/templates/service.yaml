@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.namespace }}-{{ include "imageprovider.fullname" . }}
+  labels:
+    app.kubernetes.io/component: imageprovider
+    app.kubernetes.io/part-of: opentelemetry-demo
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "imageprovider.fullname" . }}
+  {{- include "imageprovider.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.opentelemetryDemoImageprovider.type }}
+  selector:
+    opentelemetry.io/name: {{ .Values.namespace }}-{{ include "imageprovider.fullname" . }}
+    {{- include "imageprovider.selectorLabels" . | nindent 4 }}
+  ports:
+  {{- .Values.opentelemetryDemoImageprovider.ports | toYaml | nindent 2 }}

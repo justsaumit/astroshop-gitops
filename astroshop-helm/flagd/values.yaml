@@ -1,0 +1,159 @@
+config:
+  demoFlagdJson: |-
+    {
+      "$schema": "https://flagd.dev/schema/v0/flags.json",
+      "flags": {
+        "productCatalogFailure": {
+          "description": "Fail product catalog service on a specific product",
+          "state": "ENABLED",
+          "variants": {
+            "on": true,
+            "off": false
+          },
+          "defaultVariant": "off"
+        },
+        "recommendationServiceCacheFailure": {
+          "description": "Fail recommendation service cache",
+          "state": "ENABLED",
+          "variants": {
+            "on": true,
+            "off": false
+          },
+          "defaultVariant": "off"
+        },
+        "adServiceManualGc": {
+          "description": "Triggers full manual garbage collections in the ad service",
+          "state": "ENABLED",
+          "variants": {
+            "on": true,
+            "off": false
+          },
+          "defaultVariant": "off"
+        },
+        "adServiceHighCpu": {
+          "description": "Triggers high cpu load in the ad service",
+          "state": "ENABLED",
+          "variants": {
+            "on": true,
+            "off": false
+          },
+          "defaultVariant": "off"
+        },
+        "adServiceFailure": {
+          "description": "Fail ad service",
+          "state": "ENABLED",
+          "variants": {
+            "on": true,
+            "off": false
+          },
+          "defaultVariant": "off"
+        },
+        "kafkaQueueProblems": {
+          "description": "Overloads Kafka queue while simultaneously introducing a consumer side delay leading to a lag spike",
+          "state": "ENABLED",
+          "variants": {
+            "on": 100,
+            "off": 0
+          },
+          "defaultVariant": "off"
+        },
+        "cartServiceFailure": {
+          "description": "Fail cart service",
+          "state": "ENABLED",
+          "variants": {
+            "on": true,
+            "off": false
+          },
+          "defaultVariant": "off"
+        },
+        "paymentServiceFailure": {
+          "description": "Fail payment service charge requests",
+          "state": "ENABLED",
+          "variants": {
+            "on": true,
+            "off": false
+          },
+          "defaultVariant": "off"
+        },
+        "paymentServiceUnreachable": {
+          "description": "Payment service is unavailable",
+          "state": "ENABLED",
+          "variants": {
+            "on": true,
+            "off": false
+          },
+          "defaultVariant": "off"
+        },
+        "loadgeneratorFloodHomepage": {
+          "description": "Flood the frontend with a large amount of requests.",
+          "state": "ENABLED",
+          "variants": {
+            "on": 100,
+            "off": 0
+          },
+          "defaultVariant": "off"
+        },
+        "imageSlowLoad": {
+          "description": "slow loading images in the frontend",
+          "state": "ENABLED",
+          "variants": {
+            "10sec": 10000,
+            "5sec": 5000,
+            "off": 0
+          },
+          "defaultVariant": "off"
+        }
+      }
+    }
+namespace: opentelemetry-demo
+kubernetesClusterDomain: cluster.local
+
+serviceAccount:
+  name: opentelemetry-demo
+  version: ">=1.32.0-0"
+  partOf: opentelemetry-demo
+
+opentelemetryDemoFlagd:
+  flagd:
+    env:
+      flagdMetricsExporter: otel
+      flagdOtelCollectorUri: $(OTEL_COLLECTOR_NAME):4317
+      otelCollectorName: opentelemetry-demo-otelcol
+      otelExporterOtlpMetricsTemporalityPreference: cumulative
+      otelResourceAttributes: service.name=$(OTEL_SERVICE_NAME),service.namespace=opentelemetry-demo,service.version=2.1.3
+    image:
+      repository: ghcr.io/open-feature/flagd
+      tag: v0.11.1
+    imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        memory: 512Mi
+  flagdui:
+    env:
+      flagdMetricsExporter: otel
+      otelCollectorName: opentelemetry-demo-otelcol
+      otelExporterOtlpEndpoint: http://$(OTEL_COLLECTOR_NAME):4318
+      otelExporterOtlpMetricsTemporalityPreference: cumulative
+      otelResourceAttributes: service.name=$(OTEL_SERVICE_NAME),service.namespace=opentelemetry-demo,service.version=2.1.3
+      secretKeyBase: yYrECL4qbNwleYInGJYvVnSkwJuSQJ4ijPTx5tirGUXrbznFIBFVJdPl5t6O9ASw
+    image:
+      repository: ghcr.io/open-telemetry/demo
+      tag: 2.1.3-flagd-ui
+    imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        memory: 512Mi
+  initConfig:
+    image:
+      repository: busybox
+      tag: latest
+  ports:
+  - name: tcp-service
+    port: 8013
+    targetPort: 8013
+  - name: tcp-service-0
+    port: 4000
+    targetPort: 4000
+  replicas: 1
+  revisionHistoryLimit: 10
+  type: ClusterIP
