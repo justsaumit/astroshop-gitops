@@ -1,0 +1,270 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: astroshop-services
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: astroshop
+    app.kubernetes.io/component: applicationset
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          # Environment generator
+          - list:
+              elements:
+                - env: dev
+                  namespace: astroshop-dev
+                  repoURL: https://git.draconyan.xyz/Astroshop-Gitops
+                  targetRevision: main
+                  valuesFile: values.yaml
+                  syncPolicy: automated
+                  project: astroshop-dev
+                  clusterName: in-cluster
+                  
+                - env: qa
+                  namespace: astroshop-qa
+                  repoURL: https://git.draconyan.xyz/Astroshop-Gitops
+                  targetRevision: main
+                  valuesFile: values-qa.yaml
+                  syncPolicy: automated
+                  project: astroshop-qa
+                  clusterName: in-cluster
+                  
+                - env: prod
+                  namespace: astroshop-prod
+                  repoURL: https://git.draconyan.xyz/Astroshop-Gitops
+                  targetRevision: main
+                  valuesFile: values-prod.yaml
+                  syncPolicy: manual
+                  project: astroshop-prod
+                  clusterName: in-cluster
+          
+          # Services generator
+          - list:
+              elements:
+                - service: accounting
+                  port: 8080
+                - service: ad
+                  port: 8080
+                - service: cart
+                  port: 8080
+                - service: checkout
+                  port: 8080
+                - service: currency
+                  port: 8080
+                - service: email
+                  port: 8080
+                - service: flagd
+                  port: 8013
+                - service: fraud-detection
+                  port: 8080
+                - service: frontend
+                  port: 8080
+                - service: frontendproxy
+                  port: 8080
+                - service: imageprovider
+                  port: 8080
+                - service: kafka
+                  port: 9092
+                - service: loadgenerator
+                  port: 8080
+                - service: payment
+                  port: 8080
+                - service: productcatalog
+                  port: 8080
+                - service: quote
+                  port: 8080
+                - service: recommendation
+                  port: 8080
+                - service: shipping
+                  port: 8080
+                - service: valkey
+                  port: 6379
+
+  template:
+    metadata:
+      name: 'astroshop-{{.service}}-{{.env}}'
+      labels:
+        app.kubernetes.io/name: '{{.service}}'
+        app.kubernetes.io/instance: 'astroshop-{{.env}}'
+        app.kubernetes.io/part-of: astroshop
+        app.kubernetes.io/managed-by: argocd
+        environment: '{{.env}}'
+        service: '{{.service}}'
+      annotations:
+        notifications.argoproj.io/subscribe.on-sync-succeeded.slack: astroshop-deployments
+        notifications.argoproj.io/subscribe.on-sync-failed.slack: astroshop-alerts
+        argocd.argoproj.io/manifest-generate-paths: .
+    spec:
+      project: '{{.project}}'
+      
+      source:
+        repoURL: '{{.repoURL}}'
+        targetRevision: '{{.targetRevision}}'
+        path: 'astroshop-helm/{{.service}}'
+        helm:
+          valueFiles:
+            - '{{.valuesFile}}'
+          parameters:
+            - name: namespace
+              value: '{{.namespace}}'
+            - name: environment
+              value: '{{.env}}'
+      
+      destination:
+        server: 'https://kubernetes.default.svc'
+        namespace: '{{.namespace}}'
+      
+      syncPolicy:
+        automated:
+          prune: '{{if eq .syncPolicy "automated"}}true{{else}}false{{end}}'
+          selfHeal: '{{if eq .syncPolicy "automated"}}true{{else}}false{{end}}'
+          allowEmpty: false
+        syncOptions:
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+          - PruneLast=true
+          - RespectIgnoreDifferences=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      
+      revisionHistoryLimit: 3
+      
+      ignoreDifferences:
+        - group: apps
+          kind: Deployment
+          jsonPointers:
+            - /spec/replicas
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: astroshop-dev
+  namespace: argocd
+  labels:
+    environment: dev
+spec:
+  description: Astroshop Development Environment
+  sourceRepos:
+    - 'https://git.draconyan.xyz/Astroshop-Gitops'
+  destinations:
+    - namespace: 'astroshop-dev'
+      server: 'https://kubernetes.default.svc'
+    - namespace: 'opentelemetry-demo'
+      server: 'https://kubernetes.default.svc'
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRole
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRoleBinding
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  orphanedResources:
+    warn: true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: astroshop-qa
+  namespace: argocd
+  labels:
+    environment: qa
+spec:
+  description: Astroshop QA Environment
+  sourceRepos:
+    - 'https://git.draconyan.xyz/Astroshop-Gitops'
+  destinations:
+    - namespace: 'astroshop-qa'
+      server: 'https://kubernetes.default.svc'
+    - namespace: 'opentelemetry-demo'
+      server: 'https://kubernetes.default.svc'
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRole
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRoleBinding
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  orphanedResources:
+    warn: true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: astroshop-prod
+  namespace: argocd
+  labels:
+    environment: prod
+spec:
+  description: Astroshop Production Environment
+  sourceRepos:
+    - 'https://git.draconyan.xyz/Astroshop-Gitops'
+  destinations:
+    - namespace: 'astroshop-prod'
+      server: 'https://kubernetes.default.svc'
+    - namespace: 'opentelemetry-demo'
+      server: 'https://kubernetes.default.svc'
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRole
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRoleBinding
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  orphanedResources:
+    warn: true
+  # Production requires manual approval
+  syncWindows:
+    - kind: allow
+      schedule: '0 10-18 * * 1-5'  # Only allow sync during business hours on weekdays
+      duration: 8h
+      applications:
+        - '*'
+      manualSync: true
+
+---
+# Optional: Create namespaces beforehand or enable create-namespaces:true
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: astroshop-dev
+  labels:
+    environment: dev
+    app.kubernetes.io/part-of: astroshop
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: astroshop-qa
+  labels:
+    environment: qa
+    app.kubernetes.io/part-of: astroshop
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: astroshop-prod
+  labels:
+    environment: prod
+    app.kubernetes.io/part-of: astroshop
